@@ -12,14 +12,14 @@ import (
 )
 
 var (
-    delimiter *string = flag.String("delimiter", ",", "specify separator (e.g. \"\\t\")")
-    lazyQuote *bool = flag.Bool("lazyQuote", true, "allow lazyQuote")
+	delimiter *string = flag.String("delimiter", ",", "specify separator (e.g. \"\\t\")")
+	lazyQuote *bool   = flag.Bool("lazyQuote", true, "allow lazyQuote")
 )
 
 type JSON map[string]interface{}
 
 func main() {
-    flag.Parse()
+	flag.Parse()
 
 	// Unquote Escaped Character (e.g. \t)
 	rune, _, _, err := strconv.UnquoteChar(*delimiter, '"')
@@ -27,7 +27,7 @@ func main() {
 		log.Fatalf("Error: UnquoteChar fail: Input: '%s', Message: %v\n", *delimiter, err)
 	}
 
-    // create CSV reader from stdin
+	// create CSV reader from stdin
 	r := csv.NewReader(os.Stdin)
 	r.Comma = rune
 	r.LazyQuotes = *lazyQuote
@@ -57,11 +57,11 @@ func main() {
 		results = append(results, jsonData)
 	}
 
-    // output json file
-    json, err := json.MarshalIndent(results, "", "  ")
-    if err != nil {
-        log.Fatalf("Error: json.Marshal fail: Input: %v, Message: %v", results, err)
-    }
+	// output json file
+	json, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		log.Fatalf("Error: json.Marshal fail: Input: %v, Message: %v", results, err)
+	}
 
-    fmt.Printf("%s\n", json)
+	fmt.Printf("%s\n", json)
 }
