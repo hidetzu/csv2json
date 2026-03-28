@@ -18,50 +18,76 @@ var (
 
 type JSON map[string]interface{}
 
-func main() {
-	flag.Parse()
-
-	// Unquote Escaped Character (e.g. \t)
-	rune, _, _, err := strconv.UnquoteChar(*delimiter, '"')
+func parseDelimiter(s string) (rune, error) {
+	r, _, _, err := strconv.UnquoteChar(s, '"')
 	if err != nil {
-		log.Fatalf("Error: UnquoteChar fail: Input: '%s', Message: %v\n", *delimiter, err)
+		return 0, fmt.Errorf("invalid delimiter '%s': %w", s, err)
 	}
+	return r, nil
+}
 
-	// create CSV reader from stdin
-	r := csv.NewReader(os.Stdin)
-	r.Comma = rune
-	r.LazyQuotes = *lazyQuote
+func convert(r io.Reader, comma rune, lazyQuotes bool) ([]JSON, error) {
+	reader := csv.NewReader(r)
+	reader.Comma = comma
+	reader.LazyQuotes = lazyQuotes
 
-	results := []JSON{}
-
-	// read header
-	header, err := r.Read()
+	header, err := reader.Read()
 	if err == io.EOF {
-		return
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CSV header: %w", err)
 	}
 
+	reader.FieldsPerRecord = len(header)
+
+	var results []JSON
 	for {
-		// read csv body
-		rows, err := r.Read()
+		row, err := reader.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			log.Fatalf("Error: csv Read fail: %v\n", err)
+			return nil, fmt.Errorf("failed to read CSV row: %w", err)
 		}
 
 		jsonData := make(JSON)
-		for i := range rows {
-			jsonData[header[i]] = string(rows[i])
+		for i := range row {
+			jsonData[header[i]] = row[i]
 		}
 		results = append(results, jsonData)
 	}
 
-	// output json file
-	json, err := json.MarshalIndent(results, "", "  ")
+	return results, nil
+}
+
+func run(r io.Reader, w io.Writer, comma rune, lazyQuotes bool) error {
+	results, err := convert(r, comma, lazyQuotes)
 	if err != nil {
-		log.Fatalf("Error: json.Marshal fail: Input: %v, Message: %v", results, err)
+		return err
+	}
+	if results == nil {
+		return nil
 	}
 
-	fmt.Printf("%s\n", json)
+	output, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	fmt.Fprintf(w, "%s\n", output)
+	return nil
+}
+
+func main() {
+	flag.Parse()
+
+	comma, err := parseDelimiter(*delimiter)
+	if err != nil {
+		log.Fatalf("Error: %v\n", err)
+	}
+
+	if err := run(os.Stdin, os.Stdout, comma, *lazyQuote); err != nil {
+		log.Fatalf("Error: %v\n", err)
+	}
 }
