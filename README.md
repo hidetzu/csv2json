@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/hidetzu/csv2json/actions/workflows/ci.yml/badge.svg)](https://github.com/hidetzu/csv2json/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/hidetzu/csv2json)](https://goreportcard.com/report/github.com/hidetzu/csv2json)
+[![GitHub release](https://img.shields.io/github/v/release/hidetzu/csv2json)](https://github.com/hidetzu/csv2json/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A simple CSV to JSON converter for the command line.
