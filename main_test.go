@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -39,7 +41,7 @@ func TestConvert(t *testing.T) {
 		name    string
 		input   string
 		comma   rune
-		want    int // expected number of JSON objects
+		want    int
 		wantNil bool
 		wantErr bool
 	}{
@@ -131,7 +133,7 @@ func TestRun(t *testing.T) {
 	input := "id,name\n1,taro\n"
 	var buf bytes.Buffer
 
-	err := run(strings.NewReader(input), &buf, ',', true)
+	err := run(strings.NewReader(input), &buf, ',', true, false)
 	if err != nil {
 		t.Fatalf("run() error = %v", err)
 	}
@@ -148,11 +150,96 @@ func TestRun(t *testing.T) {
 func TestRunEmptyInput(t *testing.T) {
 	var buf bytes.Buffer
 
-	err := run(strings.NewReader(""), &buf, ',', true)
+	err := run(strings.NewReader(""), &buf, ',', true, false)
 	if err != nil {
 		t.Fatalf("run() error = %v", err)
 	}
 	if buf.Len() != 0 {
 		t.Errorf("expected no output for empty input, got: %s", buf.String())
+	}
+}
+
+func TestRunJSONL(t *testing.T) {
+	input := "id,name\n1,taro\n2,hanako\n"
+	var buf bytes.Buffer
+
+	err := run(strings.NewReader(input), &buf, ',', true, true)
+	if err != nil {
+		t.Fatalf("run() error = %v", err)
+	}
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected 2 lines, got %d: %s", len(lines), buf.String())
+	}
+	if !strings.Contains(lines[0], `"id":"1"`) {
+		t.Errorf("line 0 missing id: %s", lines[0])
+	}
+	if !strings.Contains(lines[1], `"id":"2"`) {
+		t.Errorf("line 1 missing id: %s", lines[1])
+	}
+}
+
+func TestRunJSONLEmptyInput(t *testing.T) {
+	var buf bytes.Buffer
+
+	err := run(strings.NewReader(""), &buf, ',', true, true)
+	if err != nil {
+		t.Fatalf("run() error = %v", err)
+	}
+	if buf.Len() != 0 {
+		t.Errorf("expected no output for empty input, got: %s", buf.String())
+	}
+}
+
+func TestFileInput(t *testing.T) {
+	// Create temp CSV file
+	dir := t.TempDir()
+	csvPath := filepath.Join(dir, "test.csv")
+	err := os.WriteFile(csvPath, []byte("id,name\n1,taro\n"), 0644)
+	if err != nil {
+		t.Fatalf("failed to write temp file: %v", err)
+	}
+
+	f, err := os.Open(csvPath)
+	if err != nil {
+		t.Fatalf("failed to open temp file: %v", err)
+	}
+	defer f.Close()
+
+	var buf bytes.Buffer
+	err = run(f, &buf, ',', true, false)
+	if err != nil {
+		t.Fatalf("run() error = %v", err)
+	}
+
+	if !strings.Contains(buf.String(), `"id": "1"`) {
+		t.Errorf("output missing id field: %s", buf.String())
+	}
+}
+
+func TestOutputFile(t *testing.T) {
+	dir := t.TempDir()
+	outPath := filepath.Join(dir, "output.json")
+
+	f, err := os.Create(outPath)
+	if err != nil {
+		t.Fatalf("failed to create output file: %v", err)
+	}
+
+	input := "id,name\n1,taro\n"
+	err = run(strings.NewReader(input), f, ',', true, false)
+	f.Close()
+	if err != nil {
+		t.Fatalf("run() error = %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("failed to read output file: %v", err)
+	}
+
+	if !strings.Contains(string(data), `"id": "1"`) {
+		t.Errorf("output file missing id field: %s", string(data))
 	}
 }
