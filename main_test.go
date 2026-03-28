@@ -87,6 +87,12 @@ func TestConvert(t *testing.T) {
 			comma: ',',
 			want:  2,
 		},
+		{
+			name:    "duplicate header",
+			input:   "id,name,id\n1,taro,2\n",
+			comma:   ',',
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

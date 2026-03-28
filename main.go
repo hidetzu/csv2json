@@ -41,6 +41,15 @@ func convert(r io.Reader, comma rune, lazyQuotes bool) ([]JSON, error) {
 		return nil, fmt.Errorf("failed to read CSV header: %w", err)
 	}
 
+	// Check for duplicate header columns
+	seen := make(map[string]bool, len(header))
+	for i, col := range header {
+		if seen[col] {
+			return nil, fmt.Errorf("duplicate header column %q at position %d", col, i+1)
+		}
+		seen[col] = true
+	}
+
 	reader.FieldsPerRecord = len(header)
 
 	var results []JSON

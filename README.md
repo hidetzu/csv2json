@@ -93,7 +93,7 @@ cat data.csv | csv2json | jq '.[0]'
 
 ## Input / Output Specification
 
-- **Input**: CSV format from stdin or a file argument. The first row is treated as the header (JSON keys).
+- **Input**: CSV format from stdin or a file argument. The first row is treated as the header (JSON keys). Duplicate header columns are not allowed and will result in an error.
 - **Output**: Pretty-printed JSON array (default) or JSON Lines (`-jsonl`) to stdout or a file (`-o`).
 
 ## License
